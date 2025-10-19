@@ -316,6 +316,77 @@ class WorkflowMemory:
         self.client.reset()
         self._init_collections()
     
+    def clear_leads(self) -> int:
+        """
+        Clear all leads/prospects from memory.
+        
+        Returns:
+            int: Number of leads deleted
+        """
+        count = self.leads_collection.count()
+        if count > 0:
+            # Get all lead IDs
+            results = self.leads_collection.get()
+            if results['ids']:
+                self.leads_collection.delete(ids=results['ids'])
+        return count
+    
+    def clear_campaigns(self) -> int:
+        """
+        Clear all campaigns from memory.
+        
+        Returns:
+            int: Number of campaigns deleted
+        """
+        count = self.campaigns_collection.count()
+        if count > 0:
+            results = self.campaigns_collection.get()
+            if results['ids']:
+                self.campaigns_collection.delete(ids=results['ids'])
+        return count
+    
+    def clear_interactions(self) -> int:
+        """
+        Clear all interactions from memory.
+        
+        Returns:
+            int: Number of interactions deleted
+        """
+        count = self.interactions_collection.count()
+        if count > 0:
+            results = self.interactions_collection.get()
+            if results['ids']:
+                self.interactions_collection.delete(ids=results['ids'])
+        return count
+    
+    def clear_recommendations(self) -> int:
+        """
+        Clear all recommendations from memory.
+        
+        Returns:
+            int: Number of recommendations deleted
+        """
+        count = self.recommendations_collection.count()
+        if count > 0:
+            results = self.recommendations_collection.get()
+            if results['ids']:
+                self.recommendations_collection.delete(ids=results['ids'])
+        return count
+    
+    def clear_all_data(self) -> Dict[str, int]:
+        """
+        Clear all data from all collections.
+        
+        Returns:
+            dict: Count of items deleted from each collection
+        """
+        return {
+            "leads_deleted": self.clear_leads(),
+            "campaigns_deleted": self.clear_campaigns(),
+            "interactions_deleted": self.clear_interactions(),
+            "recommendations_deleted": self.clear_recommendations()
+        }
+    
     def get_statistics(self) -> Dict[str, Any]:
         """Get overall statistics from memory."""
         settings = self.client.get_settings()

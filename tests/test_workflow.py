@@ -17,17 +17,17 @@ def test_workflow_construction():
     print("Testing workflow construction...")
     try:
         builder = LangGraphBuilder("./workflow.json")
-        print("✓ Workflow loaded successfully")
+        print("[OK] Workflow loaded successfully")
         
         graph = builder.build_graph()
-        print("✓ Graph constructed successfully")
+        print("[OK] Graph constructed successfully")
         
         print(f"  - Agents: {len(builder.agents)}")
         print(f"  - Steps: {len(builder.steps)}")
         
         return True
     except Exception as e:
-        print(f"✗ Workflow construction failed: {e}")
+        print(f"[ERROR] Workflow construction failed: {e}")
         return False
 
 
@@ -39,11 +39,11 @@ def test_agent_creation():
         
         for step_id, agent_info in builder.agents.items():
             agent_name = agent_info['config']['agent']
-            print(f"  ✓ {agent_name} ({step_id})")
+            print(f"  [OK] {agent_name} ({step_id})")
         
         return True
     except Exception as e:
-        print(f"  ✗ Agent creation failed: {e}")
+        print(f"  [ERROR] Agent creation failed: {e}")
         return False
 
 
@@ -57,15 +57,15 @@ def test_mock_execution():
         # Run workflow
         result = builder.execute()
         
-        print(f"  ✓ Workflow executed: {result['status']}")
-        print(f"  ✓ Steps completed: {len(result['outputs'])}")
+        print(f"  [OK] Workflow executed: {result['status']}")
+        print(f"  [OK] Steps completed: {len(result['outputs'])}")
         
         # Check each step produced output
         for step_id in builder.agents.keys():
             if step_id in result['outputs']:
-                print(f"    - {step_id}: ✓")
+                print(f"    - {step_id}: [OK]")
             else:
-                print(f"    - {step_id}: ✗ (no output)")
+                print(f"    - {step_id}: [MISSING] (no output)")
         
         # Save test results
         with open("test_results.json", "w") as f:
@@ -74,7 +74,7 @@ def test_mock_execution():
         
         return True
     except Exception as e:
-        print(f"  ✗ Execution failed: {e}")
+        print(f"  [ERROR] Execution failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -99,7 +99,7 @@ def run_all_tests():
         try:
             results.append(test())
         except Exception as e:
-            print(f"\n✗ Test crashed: {e}")
+            print(f"\n[ERROR] Test crashed: {e}")
             results.append(False)
     
     print("\n" + "=" * 60)
@@ -110,10 +110,10 @@ def run_all_tests():
     print(f"Passed: {passed}/{total}")
     
     if passed == total:
-        print("✓ All tests passed!")
+        print("[OK] All tests passed!")
         return 0
     else:
-        print("✗ Some tests failed")
+        print("[ERROR] Some tests failed")
         return 1
 
 

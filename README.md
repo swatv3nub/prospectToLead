@@ -185,6 +185,32 @@ python scripts\view_memory.py --trends      # Performance trends
 python scripts\view_memory.py --check-lead john.doe@company.com
 ```
 
+### 6. Clear Memory (Optional)
+
+Remove data from memory when needed:
+
+```powershell
+# Show current memory statistics
+python scripts\clear_memory.py --stats
+
+# Clear only prospects/leads
+python scripts\clear_memory.py --leads
+
+# Clear all data (with confirmation)
+python scripts\clear_memory.py --all
+
+# Force clear without confirmation (use with caution!)
+python scripts\clear_memory.py --all --force
+```
+
+**⚠️ Note:** Cleared data cannot be recovered. Export prospects first if needed:
+```powershell
+python scripts\view_prospects.py --csv --json
+python scripts\clear_memory.py --leads
+```
+
+See [docs/CLEAR_MEMORY.md](docs/CLEAR_MEMORY.md) for detailed documentation.
+
 ## 📁 Project Structure
 
 ```
@@ -208,9 +234,12 @@ ProspectToLead/
 ├── scripts/
 │   ├── check_config.py          # Configuration validation
 │   ├── view_memory.py           # Memory statistics and querying
-│   └── view_prospects.py        # View and export prospects
+│   ├── view_prospects.py        # View and export prospects
+│   └── clear_memory.py          # Clear data from memory
 ├── docs/
 │   ├── MEMORY.md                # Memory system documentation
+│   ├── CLEAR_MEMORY.md          # Clear memory documentation
+│   ├── BUGFIX_UNICODE.md        # Unicode encoding fix documentation
 │   ├── PROJECT_SUMMARY.md       # Project overview
 │   ├── QUICKSTART.md            # Quick start guide
 │   └── SETUP.md                 # Detailed setup instructions
