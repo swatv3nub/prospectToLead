@@ -1,31 +1,84 @@
-# LangGraph-based Autonomous Prospect-to-Lead Workflow
+# LangGraph Outbound Lead Generation Workflow
 
-An end-to-end **LangGraph Agent System** that autonomously discovers, enriches, scores, and contacts B2B prospects — and refines its behavior over time through a **FeedbackTrainer** mechanism.
+A sophisticated, **AI-powered outbound lead generation system** built with **LangGraph 1.0.0** that automates the entire process from prospect discovery to personalized outreach and performance optimization — with **ChromaDB memory persistence** that enables continuous learning and prevents duplicate outreach.
 
 ## 🎯 Overview
 
-This project implements an AI-powered outbound lead generation system for **Analytos.ai**, targeting B2B companies in the USA with revenues between $20M–$200M. The system uses LangGraph to orchestrate multiple specialized agents that work collaboratively to automate the entire prospect-to-lead workflow.
+This project implements an intelligent, self-improving lead generation system that:
+- ✅ Discovers and enriches B2B prospects from multiple sources
+- ✅ Generates personalized, AI-powered email outreach
+- ✅ Tracks engagement (opens, clicks, replies) in real-time
+- ✅ Learns from historical performance to improve future campaigns
+- ✅ Prevents duplicate outreach using memory persistence
+- ✅ Provides human-in-the-loop approval gates for quality control
 
-### Key Features
+### 🚀 Key Features
 
-- **Dynamic Workflow Construction**: Build entire workflows from a single `workflow.json` configuration
-- **Modular Agent Architecture**: 7 specialized agents handling different aspects of the workflow
-- **ReAct Pattern**: Agents use Reason → Act → Observe pattern for intelligent decision-making
-- **Self-Improving System**: FeedbackTrainer analyzes performance and suggests improvements
-- **API Integration**: Supports Clay, Apollo, Clearbit, SendGrid, and Google Sheets
-- **Comprehensive Logging**: Detailed execution logs and performance tracking
+- **🔍 Intelligent Prospect Discovery**: Multi-source lead enrichment using Apollo.io, Clay, and Clearbit
+- **✉️ Personalized Email Outreach**: AI-generated, context-aware email campaigns with GPT-4o-mini
+- **📊 Response Tracking**: Real-time monitoring of opens, clicks, and replies via SendGrid
+- **🧠 Continuous Learning**: FeedbackTrainer analyzes performance and suggests data-driven improvements
+- **💾 Memory Persistence**: ChromaDB-based storage prevents duplicate outreach and enables historical learning
+- **🔄 Human-in-the-Loop**: Manual approval gates for lead selection and email content
+- **📈 Performance Analytics**: Detailed metrics and trend analysis across campaigns
 
 ## 🏗️ Architecture
 
-The system consists of 7 specialized agents:
+The system uses **LangGraph 1.0.0** to orchestrate a multi-agent workflow with **ChromaDB memory persistence**:
 
-1. **ProspectSearchAgent**: Discovers prospects using Clay and Apollo APIs
-2. **DataEnrichmentAgent**: Enriches lead data with Clearbit/PeopleDataLabs
-3. **ScoringAgent**: Scores and ranks leads based on ICP fit
-4. **OutreachContentAgent**: Generates personalized email content using GPT-4
-5. **OutreachExecutorAgent**: Sends emails via SendGrid/Apollo with rate limiting
-6. **ResponseTrackerAgent**: Monitors email engagement (opens, clicks, replies)
-7. **FeedbackTrainerAgent**: Analyzes results and suggests workflow improvements
+```
+ProspectSearchAgent → OutreachExecutorAgent → ResponseTrackerAgent → FeedbackTrainerAgent
+        ↓                       ↓                      ↓                      ↓
+   [Find Leads]          [Send Emails]          [Track Responses]      [Optimize]
+        ↓                       ↓                      ↓                      ↓
+  Human Approval         Human Approval         Auto (with memory)    Store Recommendations
+        ↓                       ↓                      ↓                      ↓
+   Deduplicate           Log Interactions       Track Engagement      Historical Learning
+```
+
+### 🧠 Memory Persistence Layer
+
+**ChromaDB-based memory system** with 4 collections:
+
+```
+WorkflowMemory (ChromaDB)
+├── leads_collection          # All discovered and contacted leads (deduplication)
+├── campaigns_collection       # Campaign execution history and metrics
+├── interactions_collection    # Email interactions (opened, clicked, replied)
+└── recommendations_collection # AI-generated improvement suggestions
+```
+
+**Memory enables**:
+- ✅ Lead deduplication (never contact the same person twice)
+- ✅ Performance tracking (monitor metrics across campaigns)
+- ✅ Historical learning (FeedbackTrainer uses past data to improve)
+- ✅ Full audit trail (complete interaction history)
+
+**See [docs/MEMORY.md](docs/MEMORY.md) for complete memory documentation.**
+
+### 🤖 Agent Architecture
+
+4 specialized agents working collaboratively:
+
+1. **ProspectSearchAgent**: Discovers prospects using multiple APIs
+   - Sources: Apollo.io, Clay, Clearbit
+   - **Memory integration**: Automatically deduplicates leads before returning
+   - Output: Enriched lead profiles
+
+2. **OutreachExecutorAgent**: Generates and sends personalized emails
+   - AI-powered personalization using GPT-4o-mini
+   - SendGrid delivery with rate limiting
+   - **Memory integration**: Logs "email_sent" interactions
+
+3. **ResponseTrackerAgent**: Monitors email engagement
+   - Tracks opens, clicks, replies in real-time
+   - Calculates campaign metrics
+   - **Memory integration**: Logs all engagement interactions
+
+4. **FeedbackTrainerAgent**: Analyzes performance and optimizes
+   - Compares current performance to historical trends
+   - Learns from best-performing campaigns
+   - **Memory integration**: Retrieves trends, stores recommendations
 
 ## 📋 Prerequisites
 

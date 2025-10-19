@@ -4,6 +4,7 @@ ProspectSearchAgent: Discovers prospects using Clay and Apollo APIs.
 from typing import Dict, Any, List
 from agents.base_agent import BaseAgent
 from utils.tools import ClayAPIClient, ApolloAPIClient
+from utils.memory import get_memory
 import random
 
 
@@ -59,12 +60,28 @@ class ProspectSearchAgent(BaseAgent):
         if signals:
             leads = [lead for lead in leads if lead.get("signal") in signals]
         
+        # Deduplicate leads using memory
+        memory = get_memory()
+        unique_leads = []
+        duplicate_count = 0
+        
+        for lead in leads:
+            email = lead.get("email")
+            if email and not memory.is_lead_duplicate(email):
+                unique_leads.append(lead)
+                memory.add_lead(lead)
+            else:
+                duplicate_count += 1
+        
+        if duplicate_count > 0:
+            self.logger.info(f"Filtered out {duplicate_count} duplicate leads")
+        
         # Limit results
-        leads = leads[:max_results]
+        unique_leads = unique_leads[:max_results]
         
-        self.logger.info(f"Found {len(leads)} prospects")
+        self.logger.info(f"Found {len(unique_leads)} unique prospects")
         
-        return {"leads": leads}
+        return {"leads": unique_leads}
     
     def _parse_clay_results(self, results: List[Dict]) -> List[Dict[str, Any]]:
         """Parse Clay API results into standard format."""

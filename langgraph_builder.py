@@ -6,6 +6,7 @@ import sys
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 import json
+from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -14,6 +15,7 @@ from langgraph.graph import StateGraph, END
 from typing_extensions import TypedDict
 from utils.config import ConfigLoader
 from utils.logger import setup_logging, WorkflowLogger
+from utils.memory import get_memory
 from agents import AgentFactory
 
 
@@ -181,10 +183,33 @@ class LangGraphBuilder:
             if final_state.get("errors"):
                 self.logger.logger.error(f"Workflow completed with errors: {final_state['errors']}")
             
+            # Store campaign results in memory
+            campaign_id = final_state["step_outputs"].get("send", {}).get("campaign_id", f"campaign_{datetime.now().timestamp()}")
+            memory = get_memory()
+            
+            campaign_data = {
+                "workflow_name": self.workflow_name,
+                "campaign_id": campaign_id,
+                "timestamp": datetime.now().isoformat(),
+                "total_leads": len(final_state["step_outputs"].get("prospect_search", {}).get("leads", [])),
+                "emails_sent": len(final_state["step_outputs"].get("send", {}).get("sent_status", [])),
+                "metrics": final_state["step_outputs"].get("response_tracking", {}).get("campaign_metrics", {}),
+                "recommendations": final_state["step_outputs"].get("feedback_trainer", {}).get("recommendations", [])
+            }
+            
+            memory.add_campaign(campaign_id, campaign_data)
+            self.logger.logger.info(f"Campaign data stored in memory with ID: {campaign_id}")
+            
+            # Log memory statistics
+            stats = memory.get_statistics()
+            self.logger.logger.info(f"Memory stats: {stats}")
+            
             return {
                 "status": "completed" if not final_state.get("errors") else "completed_with_errors",
                 "outputs": final_state["step_outputs"],
-                "errors": final_state.get("errors", [])
+                "errors": final_state.get("errors", []),
+                "campaign_id": campaign_id,
+                "memory_stats": stats
             }
             
         except Exception as e:

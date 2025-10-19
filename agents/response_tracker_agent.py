@@ -3,6 +3,7 @@ ResponseTrackerAgent: Monitors email engagement and responses.
 """
 from typing import Dict, Any, List
 from agents.base_agent import BaseAgent
+from utils.memory import get_memory
 import random
 from datetime import datetime, timedelta
 
@@ -73,7 +74,7 @@ class ResponseTrackerAgent(BaseAgent):
                 ]
                 reply_content = random.choice(replies)
             
-            responses.append({
+            response_data = {
                 "lead_email": email,
                 "opened": opened,
                 "clicked": clicked,
@@ -81,7 +82,21 @@ class ResponseTrackerAgent(BaseAgent):
                 "reply_content": reply_content,
                 "engagement_score": engagement_score,
                 "last_activity": (datetime.now() - timedelta(hours=random.randint(1, 48))).isoformat()
-            })
+            }
+            
+            responses.append(response_data)
+            
+            # Log interactions to memory
+            memory = get_memory()
+            if opened:
+                memory.add_interaction(email, "email_opened", {"campaign_id": campaign_id})
+            if clicked:
+                memory.add_interaction(email, "email_clicked", {"campaign_id": campaign_id})
+            if replied:
+                memory.add_interaction(email, "email_replied", {
+                    "campaign_id": campaign_id,
+                    "reply_content": reply_content
+                })
         
         return responses
     

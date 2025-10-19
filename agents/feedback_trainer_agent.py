@@ -6,6 +6,7 @@ from agents.base_agent import BaseAgent
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from utils.tools import GoogleSheetsClient
+from utils.memory import get_memory
 from datetime import datetime
 import json
 
@@ -21,16 +22,33 @@ class FeedbackTrainerAgent(BaseAgent):
         
         self.logger.info("Analyzing campaign performance and generating recommendations")
         
-        # Analyze results
-        analysis = self._analyze_performance(responses, campaign_metrics)
+        # Get memory for historical analysis
+        memory = get_memory()
         
-        # Generate recommendations
+        # Get performance trends from past campaigns
+        historical_trends = {
+            "open_rate_trend": memory.get_performance_trends("open_rate", limit=10),
+            "reply_rate_trend": memory.get_performance_trends("reply_rate", limit=10),
+            "click_rate_trend": memory.get_performance_trends("click_rate", limit=10)
+        }
+        
+        # Get best performing configurations for comparison
+        best_configs = memory.get_best_performing_configs("reply_rate", limit=3)
+        
+        # Analyze results
+        analysis = self._analyze_performance(responses, campaign_metrics, historical_trends)
+        
+        # Generate recommendations using historical data
         recommendations = self._generate_recommendations(
-            analysis, campaign_metrics, workflow_config
+            analysis, campaign_metrics, workflow_config, best_configs
         )
         
+        # Store recommendations in memory
+        for rec in recommendations:
+            memory.add_recommendation(rec)
+        
         # Generate summary
-        analysis_summary = self._create_summary(campaign_metrics, recommendations)
+        analysis_summary = self._create_summary(campaign_metrics, recommendations, historical_trends)
         
         # Log to Google Sheets if configured
         self._log_to_sheets(campaign_metrics, recommendations, analysis)
@@ -40,10 +58,12 @@ class FeedbackTrainerAgent(BaseAgent):
         return {
             "recommendations": recommendations,
             "analysis_summary": analysis_summary,
-            "performance_analysis": analysis
+            "performance_analysis": analysis,
+            "historical_trends": historical_trends
         }
     
-    def _analyze_performance(self, responses: List[Dict], metrics: Dict) -> Dict[str, Any]:
+    def _analyze_performance(self, responses: List[Dict], metrics: Dict, 
+                            historical_trends: Dict = None) -> Dict[str, Any]:
         """Analyze campaign performance in detail."""
         open_rate = metrics.get("open_rate", 0)
         click_rate = metrics.get("click_rate", 0)
@@ -78,15 +98,27 @@ class FeedbackTrainerAgent(BaseAgent):
         if reply_rate < 2:
             analysis["areas_for_improvement"].append("call_to_action")
         
+        # Add historical comparison if available
+        if historical_trends:
+            avg_open_rate = sum(historical_trends.get("open_rate_trend", [0])) / max(len(historical_trends.get("open_rate_trend", [1])), 1)
+            avg_reply_rate = sum(historical_trends.get("reply_rate_trend", [0])) / max(len(historical_trends.get("reply_rate_trend", [1])), 1)
+            
+            analysis["vs_historical"] = {
+                "open_rate_vs_avg": open_rate - avg_open_rate,
+                "reply_rate_vs_avg": reply_rate - avg_reply_rate,
+                "improving": reply_rate > avg_reply_rate
+            }
+        
         return analysis
     
     def _generate_recommendations(
         self, 
         analysis: Dict, 
         metrics: Dict,
-        workflow_config: Dict
+        workflow_config: Dict,
+        best_configs: List[Dict] = None
     ) -> List[Dict[str, Any]]:
-        """Generate actionable recommendations."""
+        """Generate actionable recommendations using historical data."""
         recommendations = []
         
         # Subject line recommendations
@@ -149,9 +181,26 @@ class FeedbackTrainerAgent(BaseAgent):
                 "approval_status": "pending"
             })
         
+        # Learn from best performing configs
+        if best_configs:
+            best_config = best_configs[0]
+            best_reply_rate = best_config['metadata'].get('reply_rate', 0)
+            
+            if best_reply_rate > metrics.get('reply_rate', 0) * 1.5:
+                recommendations.append({
+                    "category": "historical_learning",
+                    "parameter": "apply_best_config",
+                    "current_value": "current_config",
+                    "suggested_value": f"config_from_{best_config['metadata'].get('campaign_id')}",
+                    "reasoning": f"Historical campaign achieved {best_reply_rate}% reply rate vs current {metrics.get('reply_rate', 0)}%",
+                    "expected_improvement": f"Increase reply rate to ~{best_reply_rate}%",
+                    "approval_status": "pending"
+                })
+        
         return recommendations
     
-    def _create_summary(self, metrics: Dict, recommendations: List[Dict]) -> str:
+    def _create_summary(self, metrics: Dict, recommendations: List[Dict], 
+                       historical_trends: Dict = None) -> str:
         """Create human-readable analysis summary."""
         summary = f"""
 Campaign Performance Summary
@@ -160,9 +209,19 @@ Campaign Performance Summary
 📖 Open Rate: {metrics.get('open_rate', 0)}%
 👆 Click Rate: {metrics.get('click_rate', 0)}%
 💬 Reply Rate: {metrics.get('reply_rate', 0)}%
-
-Analysis:
 """
+        
+        # Add historical comparison if available
+        if historical_trends and historical_trends.get("reply_rate_trend"):
+            avg_reply = sum(historical_trends["reply_rate_trend"]) / len(historical_trends["reply_rate_trend"])
+            current_reply = metrics.get('reply_rate', 0)
+            
+            if current_reply > avg_reply:
+                summary += f"\n📈 Improvement: {current_reply - avg_reply:.1f}% above historical average\n"
+            else:
+                summary += f"\n📉 Below average: {avg_reply - current_reply:.1f}% below historical average\n"
+        
+        summary += "\nAnalysis:\n"
         
         if metrics.get('open_rate', 0) > 25:
             summary += "✅ Open rate is above average - subject lines are working well\n"

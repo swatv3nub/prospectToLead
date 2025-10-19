@@ -4,6 +4,7 @@ OutreachExecutorAgent: Sends emails and tracks delivery.
 from typing import Dict, Any, List
 from agents.base_agent import BaseAgent
 from utils.tools import SendGridClient, ApolloAPIClient
+from utils.memory import get_memory
 import time
 import uuid
 from datetime import datetime
@@ -70,6 +71,19 @@ class OutreachExecutorAgent(BaseAgent):
                         }
                     
                     self.logger.info(f"Sent email to {to_email}")
+                    
+                    # Log interaction to memory
+                    memory = get_memory()
+                    memory.add_interaction(
+                        lead_email=to_email,
+                        interaction_type="email_sent",
+                        data={
+                            "campaign_id": campaign_id,
+                            "subject": subject,
+                            "message_id": status.get("message_id"),
+                            "sent_at": status.get("sent_at")
+                        }
+                    )
                     
                     # Rate limiting
                     if i < len(messages) - 1:
