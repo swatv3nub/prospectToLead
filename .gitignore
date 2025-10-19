@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Environment Variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Data
+data/
+*.db
+*.sqlite
+chroma_db/
+
+# Google Sheets Credentials
+credentials.json
+token.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+temp/
+
+# Test outputs
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Demo videos
+*.mp4
+*.mov
+
+# Task files (original requirements)
+Task_*.md
+Task_*.pdf
+
+# Submission guide (internal use only)
+docs/SUBMISSION_GUIDE.md

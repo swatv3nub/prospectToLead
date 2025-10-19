@@ -1,0 +1,259 @@
+{
+  "workflow_name": "OutboundLeadGeneration",
+  "description": "End-to-end AI agent workflow to find, contact, and qualify B2B leads",
+  "version": "1.0",
+  "target_icp": {
+    "industry": "SaaS",
+    "location": "USA",
+    "employee_count": { "min": 100, "max": 1000 },
+    "revenue": { "min": 20000000, "max": 200000000 }
+  },
+  "steps": [
+    {
+      "id": "prospect_search",
+      "agent": "ProspectSearchAgent",
+      "inputs": {
+        "icp": {
+          "industry": "SaaS",
+          "location": "USA",
+          "employee_count": { "min": 100, "max": 1000 },
+          "revenue": { "min": 20000000, "max": 200000000 }
+        },
+        "signals": ["recent_funding", "hiring_for_sales", "tech_stack_match"],
+        "max_results": 50
+      },
+      "instructions": "Use Clay and Apollo APIs to search for company and contact data matching ICP. Focus on decision-makers (VP, Director, C-level). Return structured leads with contact information.",
+      "tools": [
+        {
+          "name": "ClayAPI",
+          "config": { 
+            "api_key": "{{CLAY_API_KEY}}", 
+            "endpoint": "https://api.clay.com/search"
+          }
+        },
+        {
+          "name": "ApolloAPI",
+          "config": { 
+            "api_key": "{{APOLLO_API_KEY}}", 
+            "endpoint": "https://api.apollo.io/v1/mixed_search"
+          }
+        }
+      ],
+      "output_schema": {
+        "leads": [
+          { 
+            "company": "string", 
+            "contact_name": "string", 
+            "email": "string", 
+            "linkedin": "string", 
+            "title": "string",
+            "signal": "string",
+            "company_size": "number",
+            "revenue": "number"
+          }
+        ]
+      },
+      "next": "enrichment"
+    },
+    {
+      "id": "enrichment",
+      "agent": "DataEnrichmentAgent",
+      "inputs": { 
+        "leads": "{{prospect_search.output.leads}}"
+      },
+      "instructions": "Enrich lead data using Clearbit or PeopleDataLabs API. Add company technologies, recent news, social profiles, and any additional context that could help personalization.",
+      "tools": [
+        { 
+          "name": "Clearbit", 
+          "config": { "api_key": "{{CLEARBIT_API_KEY}}" }
+        },
+        {
+          "name": "PeopleDataLabs",
+          "config": { "api_key": "{{PEOPLEDATALABS_API_KEY}}" }
+        }
+      ],
+      "output_schema": {
+        "enriched_leads": [
+          { 
+            "company": "string", 
+            "contact": "string", 
+            "role": "string", 
+            "technologies": "array",
+            "company_description": "string",
+            "recent_news": "array",
+            "social_profiles": "object"
+          }
+        ]
+      },
+      "next": "scoring"
+    },
+    {
+      "id": "scoring",
+      "agent": "ScoringAgent",
+      "inputs": {
+        "enriched_leads": "{{enrichment.output.enriched_leads}}",
+        "scoring_criteria": {
+          "company_size_weight": 0.2,
+          "revenue_weight": 0.3,
+          "technology_match_weight": 0.25,
+          "signal_strength_weight": 0.25,
+          "min_score_threshold": 60
+        }
+      },
+      "instructions": "Score leads based on configurable ICP scoring function. Consider company fit, technology stack alignment, buying signals, and contact seniority. Rank leads by score and filter out low-quality prospects.",
+      "tools": [],
+      "output_schema": { 
+        "ranked_leads": [
+          {
+            "lead": "object",
+            "score": "number",
+            "score_breakdown": "object",
+            "reasoning": "string"
+          }
+        ]
+      },
+      "next": "outreach_content"
+    },
+    {
+      "id": "outreach_content",
+      "agent": "OutreachContentAgent",
+      "inputs": {
+        "ranked_leads": "{{scoring.output.ranked_leads}}",
+        "persona": "SDR",
+        "tone": "friendly",
+        "value_proposition": "AI-powered analytics platform that helps B2B companies increase revenue by 30%",
+        "max_leads_to_contact": 20
+      },
+      "instructions": "Generate personalized outreach messages using LLM and prospect context. Use ReAct reasoning to craft compelling subject lines and email bodies. Reference specific company details, technologies, or recent news. Keep messages concise (under 150 words).",
+      "tools": [
+        { 
+          "name": "OpenAI", 
+          "config": { 
+            "api_key": "{{OPENAI_API_KEY}}",
+            "model": "gpt-4o-mini"
+          }
+        }
+      ],
+      "output_schema": {
+        "messages": [
+          { 
+            "lead": "object",
+            "subject_line": "string",
+            "email_body": "string",
+            "personalization_notes": "string"
+          }
+        ]
+      },
+      "next": "send"
+    },
+    {
+      "id": "send",
+      "agent": "OutreachExecutorAgent",
+      "inputs": { 
+        "messages": "{{outreach_content.output.messages}}",
+        "send_delay_seconds": 60,
+        "dry_run": false
+      },
+      "instructions": "Send emails using SendGrid or Apollo API and log delivery status. Implement rate limiting to avoid spam filters. Track campaign ID for response monitoring.",
+      "tools": [
+        { 
+          "name": "SendGrid", 
+          "config": { 
+            "api_key": "{{SENDGRID_API_KEY}}",
+            "from_email": "{{SENDGRID_FROM_EMAIL}}"
+          }
+        },
+        { 
+          "name": "ApolloAPI", 
+          "config": { "api_key": "{{APOLLO_API_KEY}}" }
+        }
+      ],
+      "output_schema": { 
+        "sent_status": [
+          {
+            "lead_email": "string",
+            "status": "string",
+            "message_id": "string",
+            "sent_at": "string"
+          }
+        ],
+        "campaign_id": "string"
+      },
+      "next": "response_tracking"
+    },
+    {
+      "id": "response_tracking",
+      "agent": "ResponseTrackerAgent",
+      "inputs": { 
+        "campaign_id": "{{send.output.campaign_id}}",
+        "tracking_duration_hours": 72
+      },
+      "instructions": "Monitor email responses, opens, clicks, and meeting bookings using Apollo API or email tracking. Collect engagement metrics for feedback loop.",
+      "tools": [
+        { 
+          "name": "ApolloAPI", 
+          "config": { "api_key": "{{APOLLO_API_KEY}}" }
+        }
+      ],
+      "output_schema": { 
+        "responses": [
+          {
+            "lead_email": "string",
+            "opened": "boolean",
+            "clicked": "boolean",
+            "replied": "boolean",
+            "reply_content": "string",
+            "engagement_score": "number"
+          }
+        ],
+        "campaign_metrics": {
+          "total_sent": "number",
+          "open_rate": "number",
+          "click_rate": "number",
+          "reply_rate": "number"
+        }
+      },
+      "next": "feedback_trainer"
+    },
+    {
+      "id": "feedback_trainer",
+      "agent": "FeedbackTrainerAgent",
+      "inputs": { 
+        "responses": "{{response_tracking.output.responses}}",
+        "campaign_metrics": "{{response_tracking.output.campaign_metrics}}",
+        "workflow_config": "{{workflow}}"
+      },
+      "instructions": "Analyze campaign performance (open/click/reply rates). Identify patterns in successful vs unsuccessful outreach. Suggest config improvements: ICP filters refinement, messaging tone adjustments, subject line variations, timing optimization. Write recommendations to Google Sheets for human approval.",
+      "tools": [
+        { 
+          "name": "GoogleSheets", 
+          "config": { 
+            "credentials_file": "{{GOOGLE_SHEETS_CREDENTIALS_FILE}}",
+            "sheet_id": "{{GOOGLE_SHEET_ID}}"
+          }
+        },
+        {
+          "name": "OpenAI",
+          "config": { 
+            "api_key": "{{OPENAI_API_KEY}}",
+            "model": "gpt-4o-mini"
+          }
+        }
+      ],
+      "output_schema": { 
+        "recommendations": [
+          {
+            "category": "string",
+            "current_value": "any",
+            "suggested_value": "any",
+            "reasoning": "string",
+            "expected_improvement": "string",
+            "approval_status": "pending"
+          }
+        ],
+        "analysis_summary": "string"
+      },
+      "next": null
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "workflow_name": "MinimalTestWorkflow",
+  "description": "Simplified workflow for testing with fewer steps",
+  "version": "1.0",
+  "steps": [
+    {
+      "id": "prospect_search",
+      "agent": "ProspectSearchAgent",
+      "inputs": {
+        "icp": {
+          "industry": "SaaS",
+          "location": "USA",
+          "employee_count": { "min": 100, "max": 500 }
+        },
+        "signals": ["recent_funding"],
+        "max_results": 10
+      },
+      "instructions": "Search for 10 prospects matching ICP",
+      "tools": [
+        {
+          "name": "ApolloAPI",
+          "config": { "api_key": "{{APOLLO_API_KEY}}" }
+        }
+      ],
+      "output_schema": {
+        "leads": []
+      },
+      "next": "scoring"
+    },
+    {
+      "id": "scoring",
+      "agent": "ScoringAgent",
+      "inputs": {
+        "enriched_leads": "{{prospect_search.output.leads}}",
+        "scoring_criteria": {
+          "company_size_weight": 0.3,
+          "revenue_weight": 0.3,
+          "technology_match_weight": 0.2,
+          "signal_strength_weight": 0.2,
+          "min_score_threshold": 50
+        }
+      },
+      "instructions": "Score and rank the prospects",
+      "tools": [],
+      "output_schema": {
+        "ranked_leads": []
+      },
+      "next": "outreach_content"
+    },
+    {
+      "id": "outreach_content",
+      "agent": "OutreachContentAgent",
+      "inputs": {
+        "ranked_leads": "{{scoring.output.ranked_leads}}",
+        "persona": "SDR",
+        "tone": "friendly",
+        "value_proposition": "AI-powered analytics platform",
+        "max_leads_to_contact": 5
+      },
+      "instructions": "Generate personalized messages for top 5 leads",
+      "tools": [
+        {
+          "name": "OpenAI",
+          "config": {
+            "api_key": "{{OPENAI_API_KEY}}",
+            "model": "gpt-4o-mini"
+          }
+        }
+      ],
+      "output_schema": {
+        "messages": []
+      },
+      "next": null
+    }
+  ]
+}
