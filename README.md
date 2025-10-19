@@ -21,6 +21,7 @@ This project implements an intelligent, self-improving lead generation system th
 - **💾 Memory Persistence**: ChromaDB-based storage prevents duplicate outreach and enables historical learning
 - **🔄 Human-in-the-Loop**: Manual approval gates for lead selection and email content
 - **📈 Performance Analytics**: Detailed metrics and trend analysis across campaigns
+- **📁 Organized Export**: Prospects automatically saved to organized folders (CSV/JSON/Excel) with timestamps
 
 ## 🏗️ Architecture
 
@@ -141,6 +142,49 @@ python langgraph_builder.py --config ./workflow.json
 python langgraph_builder.py --visualize
 ```
 
+### 4. View Found Prospects
+
+After the workflow runs, prospects are automatically stored in memory and can be viewed/exported:
+
+```powershell
+# View prospects in console
+python scripts\view_prospects.py
+
+# Export to CSV (saved to prospects/csv/ folder)
+python scripts\view_prospects.py --csv
+
+# Export to JSON (saved to prospects/json/ folder)
+python scripts\view_prospects.py --json
+
+# Export to Excel (saved to prospects/xlsx/ folder)
+python scripts\view_prospects.py --xlsx
+
+# Export all formats at once
+python scripts\view_prospects.py --csv --json --xlsx
+```
+
+**Exported files are organized by format**:
+- `prospects/csv/prospects_20251019_143025.csv` - Spreadsheet format
+- `prospects/json/prospects_20251019_143025.json` - Structured data format
+- `prospects/xlsx/prospects_20251019_143025.xlsx` - Excel format with formatting
+
+### 5. View Memory Statistics
+
+Check campaign history and memory statistics:
+
+```powershell
+# View all memory statistics
+python scripts\view_memory.py --all
+
+# View specific information
+python scripts\view_memory.py --stats       # Overall statistics
+python scripts\view_memory.py --campaigns   # Recent campaigns
+python scripts\view_memory.py --trends      # Performance trends
+
+# Check if a lead exists
+python scripts\view_memory.py --check-lead john.doe@company.com
+```
+
 ## 📁 Project Structure
 
 ```
@@ -148,19 +192,45 @@ ProspectToLead/
 ├── agents/
 │   ├── __init__.py              # Agent factory
 │   ├── base_agent.py            # Base agent with ReAct pattern
-│   ├── prospect_search_agent.py # Prospect discovery
+│   ├── prospect_search_agent.py # Prospect discovery with memory deduplication
 │   ├── enrichment_agent.py      # Data enrichment
 │   ├── scoring_agent.py         # Lead scoring
 │   ├── outreach_content_agent.py # Content generation
-│   ├── outreach_executor_agent.py # Email sending
-│   ├── response_tracker_agent.py # Response tracking
-│   └── feedback_trainer_agent.py # Performance analysis
+│   ├── outreach_executor_agent.py # Email sending with interaction logging
+│   ├── response_tracker_agent.py # Response tracking with memory
+│   └── feedback_trainer_agent.py # Performance analysis with historical learning
 ├── utils/
 │   ├── config.py                # Configuration loader
 │   ├── logger.py                # Logging utilities
+│   ├── llm.py                   # OpenAI GPT-4o-mini integration
+│   ├── memory.py                # ChromaDB memory persistence layer
 │   └── tools.py                 # API client integrations
+├── scripts/
+│   ├── check_config.py          # Configuration validation
+│   ├── view_memory.py           # Memory statistics and querying
+│   └── view_prospects.py        # View and export prospects
+├── docs/
+│   ├── MEMORY.md                # Memory system documentation
+│   ├── PROJECT_SUMMARY.md       # Project overview
+│   ├── QUICKSTART.md            # Quick start guide
+│   └── SETUP.md                 # Detailed setup instructions
+├── tests/
+│   ├── conftest.py              # Pytest fixtures
+│   ├── test_agents.py           # Agent unit tests
+│   └── test_workflow.py         # End-to-end workflow tests
+├── data/
+│   └── chroma/                  # ChromaDB memory storage (auto-created)
+├── logs/
+│   └── workflow.log             # Workflow execution logs
+├── prospects/                   # Exported prospect data (organized by format)
+│   ├── README.md                # Prospects folder documentation
+│   ├── csv/                     # CSV exports with timestamps
+│   ├── json/                    # JSON exports with timestamps
+│   └── xlsx/                    # Excel exports with timestamps
 ├── langgraph_builder.py         # Main workflow builder
 ├── workflow.json                # Workflow configuration
+├── workflow_simple.json         # Simplified workflow config
+├── demo.py                      # Example workflow execution
 ├── requirements.txt             # Python dependencies
 ├── .env.example                 # Example environment config
 ├── .gitignore                   # Git ignore rules
@@ -439,9 +509,20 @@ For more detailed information, see the [docs](./docs/) folder:
 
 - **[Quick Start Guide](./docs/QUICKSTART.md)** - Get running in 5 minutes
 - **[Setup Instructions](./docs/SETUP.md)** - Detailed setup and API configuration
+- **[Memory System](./docs/MEMORY.md)** - Complete guide to ChromaDB memory persistence
 - **[System Architecture](./docs/ARCHITECTURE.md)** - In-depth architecture diagrams and explanations
 - **[Project Summary](./docs/PROJECT_SUMMARY.md)** - Complete feature list and deliverables
 - **[Demo Script](./docs/DEMO_SCRIPT.md)** - Guide for recording demo video
+- **[Bug Fixes](./docs/BUGFIX_UNICODE.md)** - Unicode encoding fix for Windows compatibility
+
+### 📁 Prospects Export
+
+The `prospects/` folder contains exported lead data organized by format:
+- **`prospects/csv/`** - CSV files with timestamp (e.g., `prospects_20251019_143025.csv`)
+- **`prospects/json/`** - JSON files with timestamp (e.g., `prospects_20251019_143025.json`)
+- **`prospects/xlsx/`** - Excel files with timestamp (e.g., `prospects_20251019_143025.xlsx`)
+
+Use `python scripts\view_prospects.py --help` for export options.
 
 ## 🎥 Demo Video
 

@@ -71,22 +71,22 @@ class WorkflowLogger:
     def log_step_start(self, step_id: str, step_name: str):
         """Log the start of a workflow step."""
         self.step_times[step_id] = datetime.now()
-        self.logger.info(f"🚀 Starting step: {step_name} ({step_id})")
+        self.logger.info(f"[START] Starting step: {step_name} ({step_id})")
     
     def log_step_complete(self, step_id: str, step_name: str, output: dict = None):
         """Log the completion of a workflow step."""
         if step_id in self.step_times:
             duration = (datetime.now() - self.step_times[step_id]).total_seconds()
-            self.logger.info(f"✅ Completed step: {step_name} ({step_id}) in {duration:.2f}s")
+            self.logger.info(f"[DONE] Completed step: {step_name} ({step_id}) in {duration:.2f}s")
         else:
-            self.logger.info(f"✅ Completed step: {step_name} ({step_id})")
+            self.logger.info(f"[DONE] Completed step: {step_name} ({step_id})")
         
         if output:
             self.logger.debug(f"Step output: {output}")
     
     def log_step_error(self, step_id: str, step_name: str, error: Exception):
-        """Log an error in a workflow step."""
-        self.logger.error(f"❌ Error in step: {step_name} ({step_id}): {str(error)}")
+        """Log an error during a workflow step."""
+        self.logger.error(f"[ERROR] Error in step: {step_name} ({step_id}): {str(error)}")
     
     def log_workflow_complete(self):
         """Log workflow completion."""

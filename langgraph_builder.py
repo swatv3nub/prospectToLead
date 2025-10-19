@@ -59,9 +59,9 @@ class LangGraphBuilder:
                     "agent": agent,
                     "config": step_config
                 }
-                self.logger.logger.info(f"✓ Created agent: {step_config['agent']}")
+                self.logger.logger.info(f"[OK] Created agent: {step_config['agent']}")
             except Exception as e:
-                self.logger.logger.error(f"✗ Failed to create agent {step_id}: {e}")
+                self.logger.logger.error(f"[ERROR] Failed to create agent {step_id}: {e}")
                 raise
     
     def build_graph(self) -> StateGraph:
@@ -82,7 +82,7 @@ class LangGraphBuilder:
         first_step = self.steps[0]["id"]
         workflow.set_entry_point(first_step)
         
-        self.logger.logger.info("✓ Graph construction complete")
+        self.logger.logger.info("[OK] Graph construction complete")
         
         return workflow.compile()
     
@@ -160,7 +160,7 @@ class LangGraphBuilder:
     
     def execute(self) -> Dict[str, Any]:
         """Execute the complete workflow."""
-        self.logger.logger.info(f"🚀 Starting workflow: {self.workflow_name}")
+        self.logger.logger.info(f"[START] Starting workflow: {self.workflow_name}")
         
         # Build graph
         graph = self.build_graph()
@@ -280,7 +280,7 @@ def main():
         print(f"\nFull results saved to: {output_file}")
         
     except Exception as e:
-        print(f"\n❌ Error: {str(e)}")
+        print(f"\n[ERROR] Error: {str(e)}")
         sys.exit(1)
 
 

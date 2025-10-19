@@ -46,6 +46,9 @@ data/
 *.sqlite
 chroma_db/
 
+# Prospects exports
+prospects/
+
 # Google Sheets Credentials
 credentials.json
 token.json
