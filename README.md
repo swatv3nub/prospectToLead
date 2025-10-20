@@ -198,6 +198,27 @@ python scripts\clear_memory.py --leads
 
 # Clear all data (with confirmation)
 python scripts\clear_memory.py --all
+```
+
+### 7. Interactive Feedback & Recommendation Review
+
+Provide feedback on campaign performance and approve AI-generated recommendations:
+
+```powershell
+# Interactive menu
+python scripts\interactive_feedback.py
+
+# List all campaigns
+python scripts\interactive_feedback.py --list-campaigns
+
+# Analyze a specific campaign with interactive prompts
+python scripts\interactive_feedback.py --analyze campaign_20251019_143025
+
+# View pending recommendations
+python scripts\interactive_feedback.py --view-pending
+
+# Review and approve/reject pending recommendations
+python scripts\interactive_feedback.py --approve-pending
 
 # Force clear without confirmation (use with caution!)
 python scripts\clear_memory.py --all --force

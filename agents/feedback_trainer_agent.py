@@ -1,7 +1,7 @@
 """
 FeedbackTrainerAgent: Analyzes campaign performance and suggests improvements.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from agents.base_agent import BaseAgent
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -13,6 +13,15 @@ import json
 
 class FeedbackTrainerAgent(BaseAgent):
     """Agent for analyzing performance and suggesting workflow improvements."""
+    
+    def __init__(self, *args, interactive_mode: bool = False, **kwargs):
+        """Initialize the FeedbackTrainerAgent.
+        
+        Args:
+            interactive_mode: If True, prompts for user input on recommendations
+        """
+        super().__init__(*args, **kwargs)
+        self.interactive_mode = interactive_mode
     
     def _act(self, inputs: Dict[str, Any], reasoning: str) -> Dict[str, Any]:
         """Analyze campaign results and suggest improvements."""
@@ -42,6 +51,10 @@ class FeedbackTrainerAgent(BaseAgent):
         recommendations = self._generate_recommendations(
             analysis, campaign_metrics, workflow_config, best_configs
         )
+        
+        # Get user feedback on recommendations if in interactive mode
+        if self.interactive_mode:
+            recommendations = self._get_user_feedback(recommendations, campaign_metrics, analysis)
         
         # Store recommendations in memory
         for rec in recommendations:
@@ -283,3 +296,170 @@ Campaign Performance Summary
             
         except Exception as e:
             self.logger.warning(f"Failed to log to Google Sheets: {e}")
+    
+    def _get_user_feedback(
+        self, 
+        recommendations: List[Dict[str, Any]], 
+        metrics: Dict[str, Any],
+        analysis: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Get user feedback on recommendations interactively.
+        
+        Args:
+            recommendations: List of generated recommendations
+            metrics: Campaign performance metrics
+            analysis: Performance analysis results
+            
+        Returns:
+            Updated recommendations with user approval status and custom inputs
+        """
+        print("\n" + "="*70)
+        print("FEEDBACK TRAINER - USER INPUT MODE")
+        print("="*70)
+        
+        # Show performance summary
+        print(f"\n📊 Campaign Performance:")
+        print(f"   Open Rate: {metrics.get('open_rate', 0)}%")
+        print(f"   Click Rate: {metrics.get('click_rate', 0)}%")
+        print(f"   Reply Rate: {metrics.get('reply_rate', 0)}%")
+        print(f"   Total Sent: {metrics.get('total_sent', 0)}")
+        
+        print(f"\n📈 Overall Assessment: {analysis.get('engagement_quality', 'unknown').upper()}")
+        
+        if analysis.get('vs_historical'):
+            vs_hist = analysis['vs_historical']
+            if vs_hist.get('improving'):
+                print(f"   [OK] Improving vs historical average")
+            else:
+                print(f"   [!] Below historical average")
+        
+        print(f"\n📋 Generated {len(recommendations)} recommendations\n")
+        
+        # Ask if user wants to review recommendations
+        review = self._get_yes_no_input(
+            "Would you like to review and approve recommendations?",
+            default="y"
+        )
+        
+        if not review:
+            print("\n[OK] Skipping review - all recommendations marked as 'pending'")
+            return recommendations
+        
+        updated_recommendations = []
+        
+        for i, rec in enumerate(recommendations, 1):
+            print("\n" + "-"*70)
+            print(f"Recommendation {i}/{len(recommendations)}")
+            print("-"*70)
+            print(f"Category: {rec['category']}")
+            print(f"Parameter: {rec['parameter']}")
+            print(f"Current: {rec['current_value']}")
+            print(f"Suggested: {rec['suggested_value']}")
+            print(f"Reasoning: {rec['reasoning']}")
+            print(f"Expected Impact: {rec['expected_improvement']}")
+            
+            # Get user decision
+            print("\nOptions:")
+            print("  [a] Approve - Accept this recommendation")
+            print("  [r] Reject - Decline this recommendation")
+            print("  [m] Modify - Edit the suggested value")
+            print("  [s] Skip - Leave as pending for later review")
+            
+            choice = input("\nYour choice [a/r/m/s]: ").strip().lower()
+            
+            if choice == 'a':
+                rec['approval_status'] = 'approved'
+                rec['approved_by'] = self._get_user_name()
+                rec['approval_timestamp'] = datetime.now().isoformat()
+                print("[OK] Recommendation APPROVED")
+                
+            elif choice == 'r':
+                reject_reason = input("Reason for rejection (optional): ").strip()
+                rec['approval_status'] = 'rejected'
+                rec['rejected_by'] = self._get_user_name()
+                rec['rejection_reason'] = reject_reason or "Not specified"
+                rec['rejection_timestamp'] = datetime.now().isoformat()
+                print("[OK] Recommendation REJECTED")
+                
+            elif choice == 'm':
+                new_value = input(f"Enter new value (current suggestion: {rec['suggested_value']}): ").strip()
+                if new_value:
+                    rec['suggested_value'] = new_value
+                    rec['approval_status'] = 'approved'
+                    rec['approved_by'] = self._get_user_name()
+                    rec['modified'] = True
+                    rec['approval_timestamp'] = datetime.now().isoformat()
+                    print(f"[OK] Recommendation MODIFIED and APPROVED: {new_value}")
+                else:
+                    print("[!] No value entered - keeping as pending")
+                    
+            else:  # 's' or any other input
+                rec['approval_status'] = 'pending'
+                print("[OK] Recommendation marked as PENDING")
+            
+            updated_recommendations.append(rec)
+        
+        # Summary of decisions
+        print("\n" + "="*70)
+        print("FEEDBACK SUMMARY")
+        print("="*70)
+        
+        approved = sum(1 for r in updated_recommendations if r['approval_status'] == 'approved')
+        rejected = sum(1 for r in updated_recommendations if r['approval_status'] == 'rejected')
+        pending = sum(1 for r in updated_recommendations if r['approval_status'] == 'pending')
+        
+        print(f"\n✓ Approved: {approved}")
+        print(f"✗ Rejected: {rejected}")
+        print(f"⊙ Pending: {pending}")
+        
+        # Option to add custom feedback
+        add_custom = self._get_yes_no_input("\nWould you like to add custom feedback/notes?", default="n")
+        
+        if add_custom:
+            custom_feedback = input("\nEnter your feedback: ").strip()
+            if custom_feedback:
+                # Add as a custom recommendation
+                custom_rec = {
+                    "category": "user_feedback",
+                    "parameter": "manual_observation",
+                    "current_value": "N/A",
+                    "suggested_value": custom_feedback,
+                    "reasoning": "Manual feedback from user",
+                    "expected_improvement": "User-defined improvement",
+                    "approval_status": "approved",
+                    "approved_by": self._get_user_name(),
+                    "custom": True,
+                    "approval_timestamp": datetime.now().isoformat()
+                }
+                updated_recommendations.append(custom_rec)
+                print("[OK] Custom feedback added")
+        
+        print("\n[OK] User feedback collection complete\n")
+        return updated_recommendations
+    
+    def _get_yes_no_input(self, prompt: str, default: str = "y") -> bool:
+        """Get yes/no input from user.
+        
+        Args:
+            prompt: Question to ask
+            default: Default answer ('y' or 'n')
+            
+        Returns:
+            True for yes, False for no
+        """
+        default_text = "Y/n" if default.lower() == "y" else "y/N"
+        response = input(f"{prompt} [{default_text}]: ").strip().lower()
+        
+        if not response:
+            response = default.lower()
+        
+        return response in ['y', 'yes']
+    
+    def _get_user_name(self) -> str:
+        """Get username for attribution.
+        
+        Returns:
+            Username or 'User' if not provided
+        """
+        import os
+        return os.environ.get('USERNAME', os.environ.get('USER', 'User'))
