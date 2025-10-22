@@ -550,8 +550,7 @@ This project is provided as-is for demonstration purposes.
 ## 📧 Contact
 
 For questions about this implementation:
-- **Email**: santosh.thota@analytos.ai
-- **CC**: gaurav.gupta@analytos.ai
+- **Email**: maskedvirus@owo.family
 
 ## 📚 Additional Documentation
 
